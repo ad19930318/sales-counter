@@ -1,0 +1,188 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>営業カウンター</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:#172033;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+main{max-width:520px;margin:auto;padding:20px 16px 40px}
+h1{font-size:26px;margin:12px 0 4px}
+h2{font-size:18px;margin:25px 0 12px}
+.sub{color:#64748b;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.card,.item{background:white;border-radius:18px;padding:17px;box-shadow:0 2px 8px #00000008}
+.card small{font-size:13px;color:#64748b}
+.num{font-size:37px;font-weight:800;margin:8px 0}
+.unit{font-size:13px;color:#64748b}
+.item{margin-bottom:12px}
+.line{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.label{font-size:18px;font-weight:700}
+.count{font-size:29px;font-weight:800}
+button{border:0;border-radius:12px;padding:13px 16px;font-size:17px;font-weight:700;cursor:pointer}
+.add{background:#2563eb;color:white;min-width:115px}
+.sale{background:#16a34a;color:white;width:100%;margin-top:12px;padding:18px}
+.actions{display:flex;gap:10px;margin-top:18px}
+.actions button{flex:1;background:#e2e8f0;color:#334155;font-size:14px}
+.bar{height:7px;background:#e2e8f0;border-radius:8px;overflow:hidden;margin-top:10px}
+.fill{height:100%;background:#2563eb;width:0%;transition:width .2s}
+.history{font-size:14px;line-height:2;border-bottom:1px solid #e2e8f0}
+footer{margin-top:24px;text-align:center;font-size:12px;color:#64748b}
+</style>
+</head>
+<body>
+<main>
+<h1>🔥 営業カウンター</h1>
+<div class="sub" id="date"></div>
+
+<div class="grid">
+<div class="card">
+<small>本日の母数</small>
+<div class="num" id="total">0</div>
+<div class="unit">目標 20母数</div>
+<div class="bar"><div class="fill" id="bar1"></div></div>
+</div>
+<div class="card">
+<small>本日の獲得</small>
+<div class="num" id="sales">0</div>
+<div class="unit">目標 3件</div>
+<div class="bar"><div class="fill" id="bar2" style="background:#16a34a"></div></div>
+</div>
+</div>
+
+<div class="card" style="margin-top:10px">
+<small>本日の獲得率（獲得÷母数）</small>
+<div class="num" id="rate">0%</div>
+</div>
+
+<h2>📊 アプローチ母数</h2>
+
+<div class="item">
+<div class="line">
+<div class="label">🎯 カットイン</div>
+<div class="count" id="cut">0</div>
+<button class="add" onclick="add('cut')">＋1</button>
+</div>
+</div>
+
+<div class="item">
+<div class="line">
+<div class="label">🛍️ 物販</div>
+<div class="count" id="product">0</div>
+<button class="add" onclick="add('product')">＋1</button>
+</div>
+</div>
+
+<div class="item">
+<div class="line">
+<div class="label">🥤 試飲</div>
+<div class="count" id="sample">0</div>
+<button class="add" onclick="add('sample')">＋1</button>
+</div>
+</div>
+
+<h2>🏆 獲得記録</h2>
+<div class="item">
+<div class="line">
+<div>
+<div class="label">本日の獲得件数</div>
+<div class="sub">1件獲得ごとにタップ</div>
+</div>
+<div class="count" id="sales2">0</div>
+</div>
+<button class="sale" onclick="add('sales')">🔥 獲得 ＋1件</button>
+</div>
+
+<div class="actions">
+<button onclick="undo()">↩ 直前の操作を戻す</button>
+<button onclick="resetToday()">今日をリセット</button>
+</div>
+
+<h2>📅 直近7日間の実績</h2>
+<div class="item" id="history"></div>
+
+<footer>SALES COUNTER | 毎日の積み重ねが結果を変える🔥</footer>
+</main>
+
+<script>
+const STORE="sales-counter-v1";
+let data={};
+try{data=JSON.parse(localStorage.getItem(STORE)||"{}")}catch(e){data={}}
+let last=null;
+
+function dateKey(d=new Date()){
+return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function empty(){
+return {cut:0,product:0,sample:0,sales:0};
+}
+function getToday(){
+const k=dateKey();
+if(!data[k])data[k]=empty();
+return data[k];
+}
+function save(){
+localStorage.setItem(STORE,JSON.stringify(data));
+}
+function add(type){
+const k=dateKey();
+getToday()[type]++;
+last={date:k,type:type};
+save();
+render();
+}
+function undo(){
+if(!last){alert("戻せる操作がありません");return}
+const r=data[last.date];
+if(r&&r[last.type]>0){
+r[last.type]--;
+save();
+}
+last=null;
+render();
+}
+function resetToday(){
+if(confirm("今日の記録を全部リセットしますか？")){
+data[dateKey()]=empty();
+last=null;
+save();
+render();
+}
+}
+function render(){
+const t=getToday();
+const total=t.cut+t.product+t.sample;
+const rate=total?((t.sales/total)*100).toFixed(1):"0";
+document.getElementById("date").textContent=
+new Date().toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
+for(const k of ["cut","product","sample","sales"]){
+document.getElementById(k).textContent=t[k];
+}
+document.getElementById("sales2").textContent=t.sales;
+document.getElementById("total").textContent=total;
+document.getElementById("rate").textContent=rate+"%";
+document.getElementById("bar1").style.width=Math.min(total/20*100,100)+"%";
+document.getElementById("bar2").style.width=Math.min(t.sales/3*100,100)+"%";
+let html="";
+for(let i=0;i<7;i++){
+const d=new Date();
+d.setHours(12,0,0,0);
+d.setDate(d.getDate()-i);
+const k=dateKey(d);
+const r=data[k]||empty();
+const n=r.cut+r.product+r.sample;
+html+='<div class="history">'+k.slice(5).replace("-","/")+
+'　母数 '+n+'　獲得 '+r.sales+'件</div>';
+}
+document.getElementById("history").innerHTML=html;
+}
+render();
+document.addEventListener("visibilitychange",()=>{
+if(!document.hidden)render();
+});
+</script>
+</body>
+</html>
